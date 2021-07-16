@@ -6,7 +6,7 @@ block content
       .ticket-form__wrapper
         h1.ticket-form__title Редактировать публикацию
         .ticket-form__tile
-          form.ticket-form__form.form(action='#' method='post' enctype='multipart/form-data' autocomplete='off')
+          form.ticket-form__form.form(action='/offers/add' method='post' enctype='multipart/form-data' autocomplete='off')
             .ticket-form__avatar-container.js-preview-container.uploaded
               .ticket-form__avatar.js-preview
                 img(src=`/img/${offer.picture}` alt='Изображение товара')
@@ -28,8 +28,8 @@ block content
                   span Обязательное поле
               .ticket-form__row
                 select#category-field.form__select.js-multiple-select(name='category' data-label='Выбрать категорию публикации' multiple)
-                  each category, index in categories
-                    option(value=index selected=plainOfferCategories.includes(category.title)) #{category.title}
+                  each category in categories
+                    option(value=category.id selected=plainOfferCategories.includes(category.title)) #{category.title}
               .ticket-form__row
                 .form__field.form__field--price
                   input#price-field.js-field.js-price(type='number' name='sum' min='1' value=`${offer.sum}` required)

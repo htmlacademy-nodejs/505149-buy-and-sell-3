@@ -27,15 +27,13 @@ mainRouter.get(`/`, async (req, res) => {
 mainRouter.get(`/register`, (req, res) => res.render(`register`, {}));
 mainRouter.get(`/login`, (req, res) => res.render(`login`, {}));
 mainRouter.get(`/search`, async (req, res) => {
-  const allOffers = await api.getOffers();
-  const eightOffers = allOffers.slice(0, OFFERS_PER_PAGE);
-  const moreOffersQty = allOffers.length >= OFFERS_PER_PAGE ? (allOffers.length) - OFFERS_PER_PAGE : null;
-
   const encodedURI = encodeURI(req.query.query);
-  const offers = await api.search(encodedURI);
+  const result = await api.search(encodedURI);
+  const {count, searchResult, eightOffers} = result;
+  const moreOffersQty = count >= OFFERS_PER_PAGE ? (count) - OFFERS_PER_PAGE : null;
 
-  if (offers) {
-    res.render(`search-result`, {offers, eightOffers, moreOffersQty});
+  if (searchResult) {
+    res.render(`search-result`, {searchResult, eightOffers, moreOffersQty});
   } else {
     res.render(`search-empty`, {eightOffers, moreOffersQty});
   }

@@ -1,5 +1,7 @@
 'use strict';
 
+const OFFERS_PER_PAGE = 8;
+
 class SearchService {
   constructor(db, logger) {
     this._models = db.models;
@@ -7,18 +9,40 @@ class SearchService {
   }
 
   async findAll(searchText) {
-    const {Offer} = this._models;
+    const {Offer, Comment, Category} = this._models;
+    let searchResult;
 
-    const offers = await Offer.findAll();
-    const preparedOffers = [];
+    try {
+      const offers = await Offer.findAll({
+        include: [
+          {
+            model: Comment,
+            as: `comments`,
+          },
+          {
+            model: Category,
+            as: `categories`,
+          }
+        ],
+        order: [
+          [`created_date`, `DESC`],
+        ],
+      });
 
-    for (const offer of offers) {
-      const categories = await offer.getCategories({raw: true});
-      offer.dataValues.category = categories;
-      preparedOffers.push(offer.dataValues);
+      const count = await Offer.count();
+      const eightOffers = offers.slice(0, OFFERS_PER_PAGE);
+      if (!searchText) {
+        searchResult = null;
+      } else {
+        searchResult = offers.filter((offer) => offer.title.toLowerCase().includes(searchText));
+      }
+
+      return {eightOffers, searchResult, count};
+    } catch (error) {
+      this._logger.error(`Can not find offers. Error: ${error}`);
+
+      return null;
     }
-
-    return preparedOffers.filter((offer) => offer.title.toLowerCase().includes(searchText));
   }
 
 }

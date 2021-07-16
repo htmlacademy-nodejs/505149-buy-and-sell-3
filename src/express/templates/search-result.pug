@@ -7,9 +7,9 @@ block content
       .search-results__wrapper
         p.search-results__label
           | Найдено
-          span.js-results  #{offers.length} публикации
+          span.js-results  #{searchResult.length} публикации
         ul.search-results__list
-          each offer in offers
+          each offer in searchResult
             li.search-results__item
               .ticket-card.ticket-card--color05
                 .ticket-card__img
@@ -17,7 +17,7 @@ block content
                 .ticket-card__info
                   +ticketLabel(offer.type)
                   .ticket-card__categories
-                    each category in offer.category
+                    each category in offer.categories
                       a(href='#')= category.title
                     .ticket-card__header
                       h3.ticket-card__title
@@ -43,7 +43,7 @@ block content
                 .ticket-card__info
                   +ticketLabel(offer.type)
                   .ticket-card__categories
-                    each category in offer.category
+                    each category in offer.categories
                       a(href='#')= category.title
                     .ticket-card__header
                       h3.ticket-card__title

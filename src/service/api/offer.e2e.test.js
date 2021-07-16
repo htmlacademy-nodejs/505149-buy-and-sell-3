@@ -6,13 +6,13 @@ const {createApp} = require(`../cli/server`);
 const {sequelize} = require(`../database`);
 const {HttpCode, ExitCode} = require(`../../constants`);
 
-const offerMock = {
+const mockOffer = {
   "title": `Title`,
   "picture": `02.jpg`,
   "description": `Some description`,
   "type": `offer`,
   "sum": 1,
-  "category": [
+  "categories": [
     `Разное`,
   ],
 };
@@ -57,7 +57,7 @@ describe(`Offer API end-points:`, () => {
   test(`status code for POST offer request should be 201`, async () => {
     res = await request(app)
       .post(`/api/offers`)
-      .send(offerMock);
+      .send(mockOffer);
 
     mockOfferId = res.body.id;
 
@@ -78,6 +78,14 @@ describe(`Offer API end-points:`, () => {
     expect(res.statusCode).toBe(HttpCode.OK);
   });
 
+  test(`status code for GET query to my/comments should be 200`, async () => {
+    res = await request(app).get(`/api/offers/my-comments`);
+
+    expect(res.statusCode).toBe(HttpCode.OK);
+    expect(res.body.slicedOffers.length).toBe(3);
+    expect(Array.isArray(res.body.slicedOffers)).toBeTruthy();
+  });
+
   test(`PUT request should work and status code should be 200`, async () => {
     res = await request(app)
       .put(`/api/offers/${mockOfferId}`)
@@ -87,12 +95,11 @@ describe(`Offer API end-points:`, () => {
         "description": `New description`,
         "type": `offer`,
         "sum": 999,
-        "category": [
-          `Книги`,
-        ],
+        "categories": [2],
       });
     expect(res.statusCode).toBe(HttpCode.OK);
     expect(res.body.sum).toBe(`999`);
+    expect(res.body.categories[0].id).toBe(`2`);
   });
 
   test(`wrong PUT request should not work and status code  should be 400`, async () => {
@@ -122,7 +129,7 @@ describe(`Offer comments API end-points`, () => {
   test(`status code after GET request for comments should be 200 and and output should be array`, async () => {
     res = await request(app)
       .post(`/api/offers`)
-      .send(offerMock);
+      .send(mockOffer);
 
     mockOfferId = res.body.id;
     res = await request(app).get((`/api/offers/${mockOfferId}/comments`));
@@ -144,7 +151,6 @@ describe(`Offer comments API end-points`, () => {
         "text": `Some text`,
       });
 
-    mockCommentId = res.body.id;
     expect(res.statusCode).toBe(HttpCode.CREATED);
   });
 
@@ -159,15 +165,22 @@ describe(`Offer comments API end-points`, () => {
   });
 
   test(`delete comment request should delete comment and status code after should be 200`, async () => {
+    res = await request(app)
+    .post((`/api/offers/${mockOfferId}/comments`))
+    .send({
+      "text": `Some text`,
+    });
+    mockCommentId = res.body.id;
+
     res = await request(app).delete((`/api/offers/${mockOfferId}/comments/${mockCommentId}`));
     expect(res.statusCode).toBe(HttpCode.OK);
 
     res = await request(app).get((`/api/offers/${mockOfferId}/comments`));
-    expect(res.body.length).toBe(0);
+    expect(res.body.length).toBe(1);
   });
 
   test(`status code after delete comment request with wrong comment id should return 404`, async () => {
-    res = await request(app).delete((`/api/offers/${offerMock.id}/comments/xx`));
+    res = await request(app).delete((`/api/offers/${mockOffer.id}/comments/xx`));
 
     expect(res.statusCode).toBe(HttpCode.NOT_FOUND);
   });

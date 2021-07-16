@@ -28,7 +28,7 @@ block content
                 b Контакты:
                 a(href='mailto:shkatulkin@ya.ru')  shkatulkin@ya.ru
             ul.ticket__tags
-              each category in offer.category
+              each category in offer.categories
                 li
                   a.category-tile.category-tile--small(href='#')
                     span.category-tile__image
@@ -50,7 +50,7 @@ block content
               button.comment-form__button.btn.btn--white.js-button(type='submit' disabled) Отправить
           .ticket__comments-list
             ul.comments-list
-              each comment in comments
+              each comment in offer.comments
                 li
                   .comment-card
                     .comment-card__header

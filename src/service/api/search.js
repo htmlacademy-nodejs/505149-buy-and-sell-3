@@ -16,21 +16,13 @@ module.exports = (app, service) => {
   route.get(`/`, async (req, res) => {
     const {query = ``} = req.query;
 
-    if (!query) {
+    const result = await service.findAll(query.toLowerCase());
+
+    if (!result.searchResult) {
       logger.error(`Empty query...`);
-      res.status(HttpCode.BAD_REQUEST).send(null);
-      return;
     }
 
-    const searchResults = await service.findAll(query.toLowerCase());
-
-    if (searchResults.length) {
-      res.status(HttpCode.OK)
-      .json(searchResults);
-    } else {
-      logger.info(`Did not find offers`);
-      res.status(HttpCode.NOT_FOUND)
-      .send(null);
-    }
+    return res.status(HttpCode.OK)
+    .json(result);
   });
 };

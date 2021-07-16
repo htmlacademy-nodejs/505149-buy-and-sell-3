@@ -28,14 +28,23 @@ class API {
       const {data: offer} = await axios.get(`${this._baseUrl}offers/${id}`);
       return offer;
     } catch (error) {
-      return logger.error(`Error while search: ${error.message}`);
+      return logger.error(`Did not find offer: ${error.message}`);
+    }
+  }
+
+  async updateOffer(id, offer) {
+    try {
+      const {data: result} = await axios.put(`${this._baseUrl}offers/${id}`, offer);
+      return result;
+    } catch (error) {
+      return logger.error(`Did not update offer: ${error.message}`);
     }
   }
 
   async search(query) {
     try {
-      const {data: offers} = await axios.get(`${this._baseUrl}search?query=${query}`);
-      return offers;
+      const {data: result} = await axios.get(`${this._baseUrl}search?query=${query}`);
+      return result;
     } catch (error) {
       return logger.error(`Error while search: ${error.message}`);
     }
@@ -47,17 +56,26 @@ class API {
   }
 
   async createOffer(data) {
-    const {data: offer} = await axios({
-      method: `post`,
-      url: `${this._baseUrl}offers`,
-      data
-    });
-    return offer;
+    try {
+      const {data: offer} = await axios({
+        method: `post`,
+        url: `${this._baseUrl}offers`,
+        data,
+      });
+      return offer;
+    } catch (error) {
+      return logger.error(`Can not create offer: ${error.message}`);
+    }
   }
 
   async getComments(id) {
     const {data: comments} = await axios.get(`${this._baseUrl}offers/${id}/comments`);
     return comments;
+  }
+
+  async getMyComments({limit, offset, page}) {
+    const {data: result} = await axios.get(`${this._baseUrl}offers/my-comments`, {params: {offset, limit, page}});
+    return result;
   }
 }
 

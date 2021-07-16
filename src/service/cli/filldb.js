@@ -60,7 +60,7 @@ const generateOffers = (count, mockData) => (
   }))
 );
 
-const fillDataBase = async (count, categories, comments, offers) => {
+const fillDataBase = async (categories, comments, offers) => {
   try {
     await Promise.all([
       models.User.bulkCreate(users),
@@ -74,7 +74,7 @@ const fillDataBase = async (count, categories, comments, offers) => {
 
     for (const offer of offers) {
       const categoriesIds = rawCategories.reduce((acc, item) => {
-        if (offer.category.filter((cat) => cat === item.title).length) {
+        if (offer.categories.filter((cat) => cat === item.title).length) {
           acc.push(item.id);
         }
         return acc;
@@ -111,17 +111,17 @@ module.exports = {
       if (args) {
         [count] = args;
       }
-      const countOffer = Number.parseInt(count, 10) || DEFAULT_COUNT;
+      const countOfOffers = Number.parseInt(count, 10) || DEFAULT_COUNT;
       const mockData = await makeMockData(files);
       const categories = generateCategories(mockData.categories);
-      const comments = generateComments(mockData.comments, countOffer);
-      const offers = generateOffers(countOffer, mockData);
+      const comments = generateComments(mockData.comments, countOfOffers);
+      const offers = generateOffers(countOfOffers, mockData);
 
       logger.info(`Trying to connect to database...`);
       const result = await sequelize.sync({force: true});
       logger.info(`Successfully created ${result.config.database} database`);
 
-      await fillDataBase(countOffer, categories, comments, offers);
+      await fillDataBase(categories, comments, offers);
       logger.info(`Successfully filled ${result.config.database} database`);
       sequelize.close();
 

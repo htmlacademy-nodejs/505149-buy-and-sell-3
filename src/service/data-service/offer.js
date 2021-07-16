@@ -1,5 +1,7 @@
 'use strict';
 
+const {getFourSortedByCommentsAmount} = require(`../../utils`);
+
 class OfferService {
   constructor(db, logger) {
     this._db = db;
@@ -63,25 +65,26 @@ class OfferService {
   }
 
   async findAll() {
-    const {Offer} = this._db.models;
+    const {Offer, Comment, Category} = this._db.models;
 
     try {
       const offers = await Offer.findAll({
+        include: [
+          {
+            model: Comment,
+            as: `comments`,
+          },
+          {
+            model: Category,
+            as: `categories`,
+          }
+        ],
         order: [
           [`created_date`, `DESC`],
-        ]
+        ],
       });
-      const preparedOffers = [];
 
-      for (const offer of offers) {
-        const categories = await offer.getCategories({raw: true});
-        const comments = await offer.getComments({raw: true});
-        offer.dataValues.category = categories;
-        offer.dataValues.comments = comments;
-        preparedOffers.push(offer.dataValues);
-      }
-
-      return preparedOffers;
+      return offers;
     } catch (error) {
       this._logger.error(`Can not find offers. Error: ${error}`);
 
@@ -90,25 +93,29 @@ class OfferService {
   }
 
   async findPage({limit, offset}) {
-    const {Offer} = this._db.models;
+    const {Offer, Comment, Category} = this._db.models;
 
     try {
       const {count, rows} = await Offer.findAndCountAll({
+        include: [
+          {
+            model: Comment,
+            as: `comments`,
+          },
+          {
+            model: Category,
+            as: `categories`,
+          }
+        ],
+        distinct: true,
         limit,
         offset,
         order: [
           [`created_date`, `DESC`],
         ]
       });
-      const offers = [];
+      const offers = rows;
 
-      for (const offer of rows) {
-        const categories = await offer.getCategories({raw: true});
-        const comments = await offer.getComments({raw: true});
-        offer.dataValues.category = categories;
-        offer.dataValues.comments = comments;
-        offers.push(offer.dataValues);
-      }
       return {count, offers};
     } catch (error) {
       this._logger.error(`Can not find offers. Error: ${error}`);
@@ -117,16 +124,105 @@ class OfferService {
     }
   }
 
+  async findMostDiscussed() {
+    const {Offer, Comment, Category} = this._db.models;
+
+    try {
+      const offers = await Offer.findAll({
+        include: [
+          {
+            model: Comment,
+            as: `comments`,
+          },
+          {
+            model: Category,
+            as: `categories`,
+          }
+        ]
+      });
+
+      return getFourSortedByCommentsAmount(offers);
+    } catch (error) {
+      this._logger.error(`Can not find most discussed offers. Error: ${error}`);
+
+      return null;
+    }
+  }
+
+  async findCommentsPage({limit, offset, page}) {
+    const {Offer, Comment, Category} = this._db.models;
+
+    try {
+      const count = await Offer.count();
+      const rows = await Offer.findAll({
+        include: [
+          {
+            model: Comment,
+            as: `comments`,
+          },
+          {
+            model: Category,
+            as: `categories`,
+          }
+        ],
+      });
+      const allComments = rows.reduce((acc, it) => {
+        it.dataValues.comments.forEach((item) => acc.push(item.dataValues));
+        return acc;
+      }, []);
+      allComments.sort((a, b) => b[`created_date`] - a[`created_date`]);
+      const offersIds = new Set(allComments.reduce((acc, it) => {
+        acc.push(it[`offer_id`]);
+        return acc;
+      }, []));
+      let sortedOffers = [];
+      for (const id of offersIds) {
+        const offer = await Offer.findByPk(id, {
+          include: [
+            {
+              model: Comment,
+              as: `comments`,
+            },
+            {
+              model: Category,
+              as: `categories`,
+            }
+          ],
+        });
+        offer.dataValues.comments.sort((a, b) => b.dataValues[`created_date`] - a.dataValues[`created_date`]);
+        sortedOffers.push(offer);
+      }
+      const slicedOffers = sortedOffers.slice(offset, limit * page);
+
+      return {count, slicedOffers};
+    } catch (error) {
+      this._logger.error(`Can not find offers with comments. Error: ${error}`);
+
+      return null;
+    }
+  }
+
   async findOne(id) {
-    const {Offer} = this._db.models;
+    const {Offer, Comment, Category} = this._db.models;
     const offerId = Number.parseInt(id, 10);
 
     try {
-      const offer = await Offer.findByPk(offerId);
-      const categories = await offer.getCategories({raw: true});
-      offer.dataValues.category = categories;
+      const offer = await Offer.findByPk(offerId, {
+        include: [
+          {
+            model: Comment,
+            as: `comments`,
+          },
+          {
+            model: Category,
+            as: `categories`,
+          }
+        ],
+      });
 
-      return offer.dataValues;
+      offer.dataValues.comments.sort((a, b) => b.dataValues[`created_date`] - a.dataValues[`created_date`]);
+
+      return offer;
     } catch (error) {
       this._logger.error(`Can not find offer. Error: ${error}`);
 
@@ -139,7 +235,7 @@ class OfferService {
     const {Offer, Category} = this._db.models;
     const allCategories = await Category.findAll({raw: true});
     const categoriesIds = allCategories.reduce((acc, item) => {
-      if (offer.category.filter((cat) => cat === item.title).length) {
+      if (offer.category.filter((cat) => +cat === +item.id).length) {
         acc.push(item.id);
       }
       return acc;
@@ -164,8 +260,15 @@ class OfferService {
           },
         }
       });
-      await updatedOffer.addCategories(offerCategories);
-      return await Offer.findByPk(updatedOffer.id, {raw: true});
+      await updatedOffer.setCategories(offerCategories);
+      return await Offer.findByPk(updatedOffer.id, {
+        include: [
+          {
+            model: Category,
+            as: `categories`,
+          }
+        ],
+      });
     } catch (error) {
       this._logger.error(`Can not update offer. Error: ${error}`);
 
